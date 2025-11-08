@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>D Bauna - Avaliação de Treinamento</title>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -13,7 +13,7 @@
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect } = React;
+        const { useState } = React;
 
         function FormularioTreinamento() {
             const [formData, setFormData] = useState({
@@ -34,20 +34,7 @@
                 comentarios: ''
             });
 
-            const [loading, setLoading] = useState(false);
-            const [submittedLocal, setSubmittedLocal] = useState(false); // mostra se já está em modo "Obrigado" via query param
-
-            // Ao montar, verifica se a URL tem ?enviado=1 (redirecionamento do FormSubmit)
-            useEffect(() => {
-                const qs = new URLSearchParams(window.location.search);
-                if (qs.get('enviado') === '1') {
-                    setSubmittedLocal(true);
-                    // opcional: remover o param da URL sem reload
-                    const url = new URL(window.location.href);
-                    url.searchParams.delete('enviado');
-                    window.history.replaceState({}, '', url.pathname);
-                }
-            }, []);
+            const [submitted, setSubmitted] = useState(false);
 
             const handleChange = (e) => {
                 setFormData({
@@ -56,15 +43,89 @@
                 });
             };
 
-            // Submissão nativa: mantém comportamento de required nos inputs.
-            // Não precisamos fazer fetch aqui; o <form> fará o POST para o FormSubmit.
-            // Porém colocamos um pequeno handler para ativar o "loading" após submit nativo.
-            const handleNativeSubmit = () => {
-                setLoading(true);
-                // Depois do POST, o FormSubmit redirecionará para _next (configurado abaixo).
+            const handleSubmit = async () => {
+                if (!formData.nomeParticipante || !formData.dataAplicacao) {
+                    alert('Por favor, preencha pelo menos o Nome e a Data do Treinamento');
+                    return;
+                }
+
+                const mapearNota = (valor) => {
+                    const mapa = {
+                        '5': 'Excelente (5)',
+                        '4': 'Muito Bom (4)',
+                        '3': 'Bom (3)',
+                        '2': 'Regular (2)',
+                        '1': 'Insatisfatório (1)'
+                    };
+                    return mapa[valor] || 'Não informado';
+                };
+
+                const emailBody = `D BAUNA - AVALIAÇÃO DE TREINAMENTO
+GESTÃO E PDCA
+
+========================================
+INFORMAÇÕES GERAIS
+========================================
+Nome: ${formData.nomeParticipante}
+Data do Treinamento: ${formData.dataAplicacao}
+
+========================================
+1. CONTEÚDO DO TREINAMENTO
+========================================
+Clareza do conteúdo: ${mapearNota(formData.clareza)}
+Relevância do conteúdo: ${mapearNota(formData.relevancia)}
+Aplicabilidade prática: ${mapearNota(formData.aplicabilidade)}
+
+========================================
+2. METODOLOGIA E RECURSOS
+========================================
+Metodologia utilizada: ${mapearNota(formData.metodologia)}
+
+========================================
+3. COMPREENSÃO DO CICLO PDCA
+========================================
+PLAN (Planejar): ${mapearNota(formData.compreensaoPlan)}
+DO (Executar): ${mapearNota(formData.compreensaoDo)}
+CHECK (Verificar): ${mapearNota(formData.compreensaoCheck)}
+ACT (Agir/Padronizar): ${mapearNota(formData.compreensaoAct)}
+
+========================================
+4. AVALIAÇÃO DO INSTRUTOR
+========================================
+Desempenho do instrutor: ${mapearNota(formData.instrutor)}
+
+========================================
+5. RESULTADOS E SATISFAÇÃO GERAL
+========================================
+Atendeu expectativas: ${mapearNota(formData.expectativas)}
+Preparado para aplicar: ${mapearNota(formData.aplicarConhecimento)}
+Recomendaria o treinamento: ${mapearNota(formData.recomendaria)}
+
+========================================
+6. COMENTÁRIOS E SUGESTÕES
+========================================
+${formData.comentarios || 'Não informado'}
+
+----------------------------------------
+Enviado em: ${new Date().toLocaleString('pt-BR')}`;
+
+                try {
+                    const subject = `D Bauna - Avaliação Treinamento - ${formData.nomeParticipante} - ${formData.dataAplicacao}`;
+                    const mailtoLink = `mailto:carlosballoni@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
+                    
+                    window.open(mailtoLink, '_blank');
+                    
+                    setTimeout(() => {
+                        setSubmitted(true);
+                    }, 500);
+                    
+                } catch (error) {
+                    console.error('Erro ao enviar:', error);
+                    alert('Erro ao abrir o email. Por favor, tente novamente.');
+                }
             };
 
-            if (submittedLocal) {
+            if (submitted) {
                 return (
                     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
                         <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
@@ -74,9 +135,7 @@
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">Avaliação Enviada!</h2>
                             <p className="text-gray-600 mb-6">Obrigado pelo seu feedback sobre o treinamento.</p>
                             <button
-                                onClick={() => {
-                                    setSubmittedLocal(false);
-                                }}
+                                onClick={() => setSubmitted(false)}
                                 className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
                             >
                                 Enviar Outra Avaliação
@@ -85,10 +144,6 @@
                     </div>
                 );
             }
-
-            // Ajuste: definimos o _next para redirecionar de volta para a URL atual + ?enviado=1
-            // Usamos uma variável para inserir o value no input hidden abaixo via useEffect/diretamente aqui.
-            const nextUrl = `${window.location.origin}${window.location.pathname}?enviado=1`;
 
             return (
                 <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
@@ -104,41 +159,7 @@
                                 </p>
                             </div>
 
-                            {/* FORM NATIVE: action -> FormSubmit */}
-                            <form
-                                action="https://formsubmit.co/el/xuyiwe"
-                                method="POST"
-                                onSubmit={handleNativeSubmit}
-                                className="space-y-8"
-                            >
-                                {/* Campo para facilitar leitura do e-mail: message com texto formatado */}
-                                <input type="hidden" name="message" value={
-`D BAUNA - AVALIAÇÃO DE TREINAMENTO
-GESTÃO E PDCA
-
-Nome: ${formData.nomeParticipante}
-Data do Treinamento: ${formData.dataAplicacao}
-Clareza: ${formData.clareza}
-Relevância: ${formData.relevancia}
-Aplicabilidade: ${formData.aplicabilidade}
-Metodologia: ${formData.metodologia}
-PLAN: ${formData.compreensaoPlan}
-DO: ${formData.compreensaoDo}
-CHECK: ${formData.compreensaoCheck}
-ACT: ${formData.compreensaoAct}
-Instrutor: ${formData.instrutor}
-Expectativas: ${formData.expectativas}
-Aplicar Conhecimento: ${formData.aplicarConhecimento}
-Recomendaria: ${formData.recomendaria}
-Comentários: ${formData.comentarios || 'Não informado'}
-Envio em: ${new Date().toLocaleString('pt-BR')}`
-                                } />
-
-                                {/* Campos ocultos do FormSubmit */}
-                                <input type="hidden" name="_subject" value={`D Bauna - Avaliação - ${formData.nomeParticipante || 'Novo envio'}`} />
-                                <input type="hidden" name="_captcha" value="false" />
-                                <input type="hidden" name="_next" value={nextUrl} />
-
+                            <div className="space-y-8">
                                 <section>
                                     <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
                                         Informações Gerais
@@ -154,7 +175,6 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
                                                 value={formData.nomeParticipante}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                required
                                             />
                                         </div>
                                         <div>
@@ -167,13 +187,11 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
                                                 value={formData.dataAplicacao}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                required
                                             />
                                         </div>
                                     </div>
                                 </section>
 
-                                {/* ... resto dos campos mantém exatamente como antes ... */}
                                 <section>
                                     <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
                                         1. Conteúdo do Treinamento
@@ -188,17 +206,15 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
                                                 value={formData.clareza}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                required
                                             >
                                                 <option value="">Selecione...</option>
-                                                <option value="Excelente (5)">Excelente</option>
-                                                <option value="Muito Bom (4)">Muito Boa</option>
-                                                <option value="Bom (3)">Boa</option>
-                                                <option value="Regular (2)">Regular</option>
-                                                <option value="Insatisfatório (1)">Insatisfatória</option>
+                                                <option value="5">Excelente</option>
+                                                <option value="4">Muito Boa</option>
+                                                <option value="3">Boa</option>
+                                                <option value="2">Regular</option>
+                                                <option value="1">Insatisfatória</option>
                                             </select>
                                         </div>
-
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 A relevância do conteúdo para sua atuação profissional: *
@@ -208,17 +224,15 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
                                                 value={formData.relevancia}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                required
                                             >
                                                 <option value="">Selecione...</option>
-                                                <option value="Excelente (5)">Excelente</option>
-                                                <option value="Muito Bom (4)">Muito Boa</option>
-                                                <option value="Bom (3)">Boa</option>
-                                                <option value="Regular (2)">Regular</option>
-                                                <option value="Insatisfatório (1)">Insatisfatória</option>
+                                                <option value="5">Excelente</option>
+                                                <option value="4">Muito Boa</option>
+                                                <option value="3">Boa</option>
+                                                <option value="2">Regular</option>
+                                                <option value="1">Insatisfatória</option>
                                             </select>
                                         </div>
-
                                         <div>
                                             <label className="block text-sm font-medium text-gray-700 mb-2">
                                                 A aplicabilidade prática do conteúdo na sua rotina: *
@@ -228,22 +242,211 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
                                                 value={formData.aplicabilidade}
                                                 onChange={handleChange}
                                                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                                                required
                                             >
                                                 <option value="">Selecione...</option>
-                                                <option value="Excelente (5)">Excelente</option>
-                                                <option value="Muito Bom (4)">Muito Boa</option>
-                                                <option value="Bom (3)">Boa</option>
-                                                <option value="Regular (2)">Regular</option>
-                                                <option value="Insatisfatório (1)">Insatisfatória</option>
+                                                <option value="5">Excelente</option>
+                                                <option value="4">Muito Boa</option>
+                                                <option value="3">Boa</option>
+                                                <option value="2">Regular</option>
+                                                <option value="1">Insatisfatória</option>
                                             </select>
                                         </div>
                                     </div>
                                 </section>
 
-                                {/* restante dos sections — mantenha exatamente como no seu original, 
-                                    assegurando que name="" esteja definido (já está no seu código original) */}
-                                {/* Para poupar repetição, usei ... no exemplo; ao colar, mantenha os outros selects e textarea como antes. */}
+                                <section>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
+                                        2. Metodologia e Recursos
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Como você avalia a metodologia utilizada no treinamento? *
+                                            </label>
+                                            <select
+                                                name="metodologia"
+                                                value={formData.metodologia}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Excelente</option>
+                                                <option value="4">Muito Boa</option>
+                                                <option value="3">Boa</option>
+                                                <option value="2">Regular</option>
+                                                <option value="1">Insatisfatória</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
+                                        3. Compreensão do Ciclo PDCA
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                PLAN (Planejar) - Compreensão da etapa: *
+                                            </label>
+                                            <select
+                                                name="compreensaoPlan"
+                                                value={formData.compreensaoPlan}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Compreendi completamente</option>
+                                                <option value="4">Compreendi bem</option>
+                                                <option value="3">Compreendi parcialmente</option>
+                                                <option value="2">Tive dificuldades</option>
+                                                <option value="1">Não compreendi</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                DO (Executar) - Compreensão da etapa: *
+                                            </label>
+                                            <select
+                                                name="compreensaoDo"
+                                                value={formData.compreensaoDo}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Compreendi completamente</option>
+                                                <option value="4">Compreendi bem</option>
+                                                <option value="3">Compreendi parcialmente</option>
+                                                <option value="2">Tive dificuldades</option>
+                                                <option value="1">Não compreendi</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                CHECK (Verificar) - Compreensão da etapa: *
+                                            </label>
+                                            <select
+                                                name="compreensaoCheck"
+                                                value={formData.compreensaoCheck}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Compreendi completamente</option>
+                                                <option value="4">Compreendi bem</option>
+                                                <option value="3">Compreendi parcialmente</option>
+                                                <option value="2">Tive dificuldades</option>
+                                                <option value="1">Não compreendi</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                ACT (Agir/Padronizar) - Compreensão da etapa: *
+                                            </label>
+                                            <select
+                                                name="compreensaoAct"
+                                                value={formData.compreensaoAct}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Compreendi completamente</option>
+                                                <option value="4">Compreendi bem</option>
+                                                <option value="3">Compreendi parcialmente</option>
+                                                <option value="2">Tive dificuldades</option>
+                                                <option value="1">Não compreendi</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
+                                        4. Avaliação do Instrutor
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Como você avalia o desempenho do instrutor? *
+                                            </label>
+                                            <select
+                                                name="instrutor"
+                                                value={formData.instrutor}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Excelente</option>
+                                                <option value="4">Muito Bom</option>
+                                                <option value="3">Bom</option>
+                                                <option value="2">Regular</option>
+                                                <option value="1">Insatisfatório</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
+
+                                <section>
+                                    <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
+                                        5. Resultados e Satisfação Geral
+                                    </h2>
+                                    <div className="space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                O treinamento atendeu suas expectativas: *
+                                            </label>
+                                            <select
+                                                name="expectativas"
+                                                value={formData.expectativas}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Superou expectativas</option>
+                                                <option value="4">Atendeu plenamente</option>
+                                                <option value="3">Atendeu parcialmente</option>
+                                                <option value="2">Atendeu pouco</option>
+                                                <option value="1">Não atendeu</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Você se sente preparado para aplicar o conhecimento adquirido: *
+                                            </label>
+                                            <select
+                                                name="aplicarConhecimento"
+                                                value={formData.aplicarConhecimento}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Totalmente preparado</option>
+                                                <option value="4">Bem preparado</option>
+                                                <option value="3">Razoavelmente preparado</option>
+                                                <option value="2">Pouco preparado</option>
+                                                <option value="1">Não me sinto preparado</option>
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                                Você recomendaria este treinamento para outros profissionais: *
+                                            </label>
+                                            <select
+                                                name="recomendaria"
+                                                value={formData.recomendaria}
+                                                onChange={handleChange}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                                            >
+                                                <option value="">Selecione...</option>
+                                                <option value="5">Certamente sim</option>
+                                                <option value="4">Provavelmente sim</option>
+                                                <option value="3">Talvez</option>
+                                                <option value="2">Provavelmente não</option>
+                                                <option value="1">Certamente não</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </section>
 
                                 <section>
                                     <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
@@ -268,13 +471,13 @@ Envio em: ${new Date().toLocaleString('pt-BR')}`
 
                                 <div className="pt-6 border-t border-gray-200">
                                     <button
-                                        type="submit"
-                                        className={`w-full ${loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-3 px-6 rounded-lg font-semibold transition-colors shadow-lg hover:shadow-xl`}
+                                        onClick={handleSubmit}
+                                        className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl"
                                     >
-                                        {loading ? 'Enviando...' : 'Enviar Avaliação'}
+                                        Enviar Avaliação
                                     </button>
                                 </div>
-                            </form>
+                            </div>
                         </div>
 
                         <p className="text-center text-gray-600 text-sm">
