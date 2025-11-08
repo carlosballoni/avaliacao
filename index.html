@@ -8,6 +8,12 @@
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <script type="text/javascript">
+        (function(){
+            emailjs.init("QyJsF9_uR_IHp9ln8");
+        })();
+    </script>
 </head>
 <body>
     <div id="root"></div>
@@ -35,6 +41,7 @@
             });
 
             const [submitted, setSubmitted] = useState(false);
+            const [enviando, setEnviando] = useState(false);
 
             const handleChange = (e) => {
                 setFormData({
@@ -48,6 +55,8 @@
                     alert('Por favor, preencha pelo menos o Nome e a Data do Treinamento');
                     return;
                 }
+
+                setEnviando(true);
 
                 const mapearNota = (valor) => {
                     const mapa = {
@@ -110,18 +119,26 @@ ${formData.comentarios || 'Não informado'}
 Enviado em: ${new Date().toLocaleString('pt-BR')}`;
 
                 try {
-                    const subject = `D Bauna - Avaliação Treinamento - ${formData.nomeParticipante} - ${formData.dataAplicacao}`;
-                    const mailtoLink = `mailto:carlosballoni@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-                    
-                    window.open(mailtoLink, '_blank');
-                    
-                    setTimeout(() => {
-                        setSubmitted(true);
-                    }, 500);
+                    const templateParams = {
+                        from_name: formData.nomeParticipante,
+                        data: formData.dataAplicacao,
+                        message: emailBody,
+                        to_email: 'carlosballoni@gmail.com'
+                    };
+
+                    await emailjs.send(
+                        'service_6pqlsdr',
+                        'template_4jwbchf',
+                        templateParams
+                    );
+
+                    setEnviando(false);
+                    setSubmitted(true);
                     
                 } catch (error) {
+                    setEnviando(false);
                     console.error('Erro ao enviar:', error);
-                    alert('Erro ao abrir o email. Por favor, tente novamente.');
+                    alert('Erro ao enviar a avaliação. Por favor, tente novamente ou entre em contato com o suporte.');
                 }
             };
 
@@ -135,7 +152,26 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}`;
                             <h2 className="text-2xl font-bold text-gray-800 mb-2">Avaliação Enviada!</h2>
                             <p className="text-gray-600 mb-6">Obrigado pelo seu feedback sobre o treinamento.</p>
                             <button
-                                onClick={() => setSubmitted(false)}
+                                onClick={() => {
+                                    setSubmitted(false);
+                                    setFormData({
+                                        nomeParticipante: '',
+                                        dataAplicacao: '',
+                                        clareza: '',
+                                        relevancia: '',
+                                        aplicabilidade: '',
+                                        metodologia: '',
+                                        compreensaoPlan: '',
+                                        compreensaoDo: '',
+                                        compreensaoCheck: '',
+                                        compreensaoAct: '',
+                                        instrutor: '',
+                                        expectativas: '',
+                                        aplicarConhecimento: '',
+                                        recomendaria: '',
+                                        comentarios: ''
+                                    });
+                                }}
                                 className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
                             >
                                 Enviar Outra Avaliação
@@ -472,9 +508,10 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}`;
                                 <div className="pt-6 border-t border-gray-200">
                                     <button
                                         onClick={handleSubmit}
-                                        className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl"
+                                        disabled={enviando}
+                                        className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl disabled:bg-gray-400 disabled:cursor-not-allowed"
                                     >
-                                        Enviar Avaliação
+                                        {enviando ? 'Enviando...' : 'Enviar Avaliação'}
                                     </button>
                                 </div>
                             </div>
