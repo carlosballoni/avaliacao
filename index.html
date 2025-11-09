@@ -1,56 +1,227 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Avaliação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>D Bauna – Avaliação de Treinamento</title>
 
-  <!-- CSS rápido no próprio arquivo -->
+  <!-- Estilo rápido -->
   <style>
-    body      { margin:0; font-family:sans-serif; background:#eaf3ff;
-                display:flex; justify-content:center; align-items:center; height:100vh; }
-    .box      { background:#fff; padding:40px; border-radius:8px;
-                box-shadow:0 4px 8px rgba(0,0,0,.1); max-width:600px; width:100%; }
-    input,textarea { width:100%; padding:10px; margin:8px 0;
-                     border:1px solid #ccc; border-radius:4px; font-size:1rem; }
-    button    { padding:12px 24px; background:#512da8; color:#fff;
-                border:none; border-radius:4px; font-size:1rem; cursor:pointer; }
-    button:hover { background:#311b92; }
+    :root       { --indigo:#4f46e5; --bg:#e7efff; --radius:10px }
+    *           { box-sizing:border-box; }
+    body        { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg);
+                  display:flex; justify-content:center; padding:40px 16px; }
+    .wrapper    { width:100%; max-width:900px; background:#fff; border-radius:var(--radius);
+                  padding:40px; box-shadow:0 6px 20px rgba(0,0,0,.1); }
+    h1          { margin:0 0 4px; font-size:28px; color:#111; }
+    .subtitle   { color:var(--indigo); font-weight:600; margin-bottom:12px; }
+    section     { margin-top:32px; }
+    .sec-title  { font-size:18px; font-weight:700; border-bottom:2px solid var(--indigo);
+                  padding-bottom:6px; margin-bottom:16px; color:#111; }
+    label       { font-weight:600; font-size:14px; color:#333; display:block; margin:12px 0 6px; }
+    input,select,textarea { width:100%; padding:10px 12px; border:1px solid #ccd; border-radius:var(--radius);
+                            font-size:14px; }
+    textarea    { resize:vertical; min-height:90px; }
+    button      { margin-top:32px; width:100%; padding:14px; font-size:16px; font-weight:700;
+                  background:var(--indigo); color:#fff; border:none; border-radius:var(--radius); cursor:pointer; }
+    button[disabled]{ background:#9ca3af; cursor:not-allowed; }
+    .grid2      { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+    @media(max-width:640px){ .grid2{grid-template-columns:1fr;} }
+    .alert      { padding:12px 16px; border-radius:var(--radius); margin-bottom:24px; }
+    .alert-err  { background:#fee2e2; color:#991b1b; }
+    .success    { text-align:center; padding:60px 20px; }
+    .success h2 { color:#059669; }
   </style>
 
-  <!-- EmailJS (opcional) -->
-  <script src="https://cdn.jsdelivr.net/npm/emailjs-com@2/dist/email.min.js"></script>
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/index.min.js"></script>
   <script>
-    (function(){ emailjs.init('SEU_USER_ID_EMAILJS'); })();
+    // SUAS CHAVES
+    const EMAILJS_PUBLIC_KEY = 'QyJsF9_uR_IHp9ln8';
+    const EMAILJS_SERVICE_ID = 'service_htk7zbr';
+    const EMAILJS_TEMPLATE_ID = 'template_4jwbchf';
+    const DESTINO = 'carlosballoni@gmail.com';
 
-    function sendEmail(e){
-      e.preventDefault();
-      const params = {
-        from_name : document.getElementById('name').value,
-        email_id  : document.getElementById('email').value,
-        message   : document.getElementById('message').value
-      };
-      emailjs
-        .send('SEU_SERVICE_ID','SEU_TEMPLATE_ID',params)
-        .then(()=>alert('Mensagem enviada!'))
-        .catch(err=>alert('Erro: '+err));
+    emailjs.init(EMAILJS_PUBLIC_KEY);
+
+    // Opções 1-5
+    const opcoes = ['Excelente (5)','Muito Bom (4)','Bom (3)','Regular (2)','Insatisfatório (1)'];
+
+    // Armazena dados enquanto o usuário digita
+    const formData = {
+      nomeParticipante:'', dataAplicacao:'', clareza:'', relevancia:'', aplicabilidade:'',
+      metodologia:'', compreensaoPDCA:'', instrutor:'', expectativas:'',
+      aplicarConhecimento:'', recomendaria:'', comentarios:''
+    };
+
+    // Renderiza o formulário
+    function renderForm(){
+      document.body.innerHTML = `
+        <div class="wrapper" id="wrapper">
+          <h1>D Bauna – Avaliação de Treinamento</h1>
+          <p class="subtitle">Gestão e PDCA</p>
+          <p>Sua opinião é fundamental para aperfeiçoarmos nossos treinamentos.</p>
+
+          <form id="form">
+            <div id="alert" style="display:none"></div>
+
+            <!-- Informações gerais -->
+            <section>
+              <div class="sec-title">Informações Gerais</div>
+              <div class="grid2">
+                <div>
+                  <label>Nome do participante *</label>
+                  <input name="nomeParticipante" required>
+                </div>
+                <div>
+                  <label>Data do treinamento *</label>
+                  <input type="date" name="dataAplicacao" required>
+                </div>
+              </div>
+            </section>
+
+            <!-- Conteúdo -->
+            <section>
+              <div class="sec-title">1. Conteúdo do Treinamento</div>
+              ${selectHTML('clareza','Clareza do conteúdo *')}
+              ${selectHTML('relevancia','Relevância do conteúdo *')}
+              ${selectHTML('aplicabilidade','Aplicabilidade prática *')}
+            </section>
+
+            <!-- Metodologia -->
+            <section>
+              <div class="sec-title">2. Metodologia e Recursos</div>
+              ${selectHTML('metodologia','Avaliação da metodologia *')}
+            </section>
+
+            <!-- PDCA -->
+            <section>
+              <div class="sec-title">3. Compreensão do Ciclo PDCA</div>
+              ${selectHTML('compreensaoPDCA','Compreensão geral do PDCA *')}
+            </section>
+
+            <!-- Instrutor -->
+            <section>
+              <div class="sec-title">4. Avaliação do Instrutor</div>
+              ${selectHTML('instrutor','Desempenho do instrutor *')}
+            </section>
+
+            <!-- Resultados -->
+            <section>
+              <div class="sec-title">5. Resultados e Satisfação Geral</div>
+              ${selectHTML('expectativas','O treinamento atendeu suas expectativas *')}
+              ${selectHTML('aplicarConhecimento','Preparado para aplicar o conhecimento *')}
+              ${selectHTML('recomendaria','Recomendaria o treinamento *')}
+            </section>
+
+            <!-- Comentários -->
+            <section>
+              <div class="sec-title">6. Comentários e Sugestões</div>
+              <label>Comentários adicionais</label>
+              <textarea name="comentarios" placeholder="Compartilhe suas sugestões..."></textarea>
+            </section>
+
+            <button id="btn" type="submit">Enviar Avaliação</button>
+          </form>
+        </div>`;
+
+      // Preenche selects
+      document.querySelectorAll('select').forEach(sel=>{
+        opcoes.forEach(o=>{
+          const opt=document.createElement('option'); opt.value=o; opt.textContent=o; sel.appendChild(opt);
+        });
+      });
+
+      // Sincroniza dados
+      document.querySelectorAll('input,select,textarea').forEach(el=>{
+        el.addEventListener('input',e=> formData[e.target.name]=e.target.value);
+      });
+
+      document.getElementById('form').addEventListener('submit',handleSubmit);
     }
+
+    // Gera HTML de um select com rótulo
+    function selectHTML(name,label){
+      return `
+        <label>${label}</label>
+        <select name="${name}" required><option value="">Selecione…</option></select>`;
+    }
+
+    // Envio
+    async function handleSubmit(e){
+      e.preventDefault();
+      const btn = document.getElementById('btn');
+      const alertBox = document.getElementById('alert');
+
+      btn.disabled = true;
+      btn.textContent = 'Enviando…';
+
+      // Corpo do e-mail
+      const corpo = `
+D BAUNA – AVALIAÇÃO DE TREINAMENTO
+GESTÃO E PDCA
+
+NOME                : ${formData.nomeParticipante}
+DATA DO TREINAMENTO : ${formData.dataAplicacao}
+
+-- 1. CONTEÚDO -----------------------
+Clareza             : ${formData.clareza}
+Relevância          : ${formData.relevancia}
+Aplicabilidade      : ${formData.aplicabilidade}
+
+-- 2. METODOLOGIA --------------------
+Metodologia         : ${formData.metodologia}
+
+-- 3. COMPREENSÃO DO PDCA ------------
+Compreensão geral   : ${formData.compreensaoPDCA}
+
+-- 4. INSTRUTOR ----------------------
+Instrutor           : ${formData.instrutor}
+
+-- 5. RESULTADOS ---------------------
+Expectativas        : ${formData.expectativas}
+Aplicar conhec.     : ${formData.aplicarConhecimento}
+Recomendaria        : ${formData.recomendaria}
+
+-- 6. COMENTÁRIOS --------------------
+${formData.comentarios || 'Nenhum'}
+
+Enviado em ${new Date().toLocaleString('pt-BR')}
+`.trim();
+
+      try{
+        await emailjs.send(
+          EMAILJS_SERVICE_ID,
+          EMAILJS_TEMPLATE_ID,
+          {
+            to_email: DESTINO,
+            from_name: formData.nomeParticipante,
+            subject: `D Bauna - Avaliação - ${formData.nomeParticipante}`,
+            message: corpo
+          }
+        );
+        showSuccess();
+      }catch(err){
+        alertBox.className = 'alert alert-err';
+        alertBox.textContent = 'Erro ao enviar: '+ (err?.text || err);
+        alertBox.style.display='block';
+        btn.disabled = false;
+        btn.textContent = 'Enviar Avaliação';
+      }
+    }
+
+    function showSuccess(){
+      document.body.innerHTML = `
+        <div class="wrapper success">
+          <h2>✓ Avaliação enviada com sucesso!</h2>
+          <p>Obrigado pelo seu feedback.</p>
+          <button onclick="location.reload()">Enviar outra avaliação</button>
+        </div>`;
+    }
+
+    // Inicia
+    renderForm();
   </script>
 </head>
-
-<body>
-  <form class="box" onsubmit="sendEmail(event)">
-    <h1>Formulário de Avaliação</h1>
-
-    <label for="name">Nome</label>
-    <input id="name" required>
-
-    <label for="email">E-mail</label>
-    <input id="email" type="email" required>
-
-    <label for="message">Mensagem</label>
-    <textarea id="message" rows="5" required></textarea>
-
-    <button type="submit">Enviar</button>
-  </form>
-</body>
+<body></body>
 </html>
