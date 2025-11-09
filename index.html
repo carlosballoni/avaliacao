@@ -1,407 +1,305 @@
-import React, { useState } from 'react';
-import { CheckCircle } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>D Bauna – Avaliação de Treinamento</title>
 
-export default function FormularioTreinamento() {
-  const [formData, setFormData] = useState({
-    nomeParticipante: '',
-    dataAplicacao: '',
-    
-    // Conteúdo do Treinamento
-    clareza: '',
-    relevancia: '',
-    aplicabilidade: '',
-    
-    // Metodologia
-    metodologia: '',
-    
-    // PDCA
-    compreensaoPDCA: '',
-    
-    // Instrutor
-    instrutor: '',
-    
-    // Resultados
-    expectativas: '',
-    aplicarConhecimento: '',
-    recomendaria: '',
-    
-    comentarios: ''
-  });
+  <!-- React 18 + Babel para JSX direto no browser -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
-  const [submitted, setSubmitted] = useState(false);
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+  <div id="root"></div>
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
-  };
+  <script type="text/babel">
+    const { useState, useEffect } = React;
 
-  const handleSubmit = async () => {
-    // Verificar campos obrigatórios
-    if (!formData.nomeParticipante || !formData.dataAplicacao) {
-      alert('Por favor, preencha pelo menos o Nome e a Data do Treinamento');
-      return;
-    }
+    function FormularioTreinamento() {
+      const [formData, setFormData] = useState({
+        nomeParticipante: '',
+        dataAplicacao: '',
 
-    // Mapear valores numéricos para texto
-    const mapearNota = (valor) => {
-      const mapa = {
-        '5': 'Excelente (5)',
-        '4': 'Muito Bom (4)',
-        '3': 'Bom (3)',
-        '2': 'Regular (2)',
-        '1': 'Insatisfatório (1)'
-      };
-      return mapa[valor] || 'Não informado';
-    };
+        // Conteúdo
+        clareza: '',
+        relevancia: '',
+        aplicabilidade: '',
 
-    // Criar o corpo do email com todas as respostas
-    const emailBody = `D BAUNA - AVALIAÇÃO DE TREINAMENTO
+        // Metodologia
+        metodologia: '',
+
+        // PDCA (em quatro etapas)
+        compreensaoPlan: '',
+        compreensaoDo: '',
+        compreensaoCheck: '',
+        compreensaoAct: '',
+
+        // Instrutor
+        instrutor: '',
+
+        // Resultados
+        expectativas: '',
+        aplicarConhecimento: '',
+        recomendaria: '',
+
+        comentarios: ''
+      });
+
+      const [loading, setLoading] = useState(false);
+      const [telaObrigado, setTelaObrigado] = useState(false);
+
+      /* ------------------------------------------------------------------
+         1. Ao voltar do FormSubmit teremos ?enviado=1                     */
+      useEffect(() => {
+        const qs = new URLSearchParams(window.location.search);
+        if (qs.get('enviado') === '1') {
+          setTelaObrigado(true);
+          // limpa o parâmetro para evitar que apareça no reload
+          const url = new URL(window.location.href);
+          url.searchParams.delete('enviado');
+          window.history.replaceState({}, '', url.pathname);
+        }
+      }, []);
+
+      /* ------------------------------------------------------------------
+         2. Handlers                                                       */
+      const handleChange = ({ target }) =>
+        setFormData(prev => ({ ...prev, [target.name]: target.value }));
+
+      const handleNativeSubmit = () => setLoading(true);
+
+      /* ------------------------------------------------------------------
+         3. Tela “Obrigado”                                                */
+      if (telaObrigado) {
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
+              <svg className="w-16 h-16 text-green-500 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h2 className="text-2xl font-bold text-gray-800 mb-2">Avaliação enviada!</h2>
+              <p className="text-gray-600 mb-6">Obrigado pelo seu feedback.</p>
+              <button
+                onClick={() => setTelaObrigado(false)}
+                className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
+              >
+                Enviar outra avaliação
+              </button>
+            </div>
+          </div>
+        );
+      }
+
+      /* ------------------------------------------------------------------
+         4. URL de retorno (_next)                                         */
+      const nextUrl = `${window.location.origin}${window.location.pathname}?enviado=1`;
+
+      /* ------------------------------------------------------------------
+         5. Corpo de e-mail “message”                                      */
+      const emailMsg = `
+D BAUNA - AVALIAÇÃO DE TREINAMENTO
 GESTÃO E PDCA
 
-========================================
-INFORMAÇÕES GERAIS
-========================================
 Nome: ${formData.nomeParticipante}
 Data do Treinamento: ${formData.dataAplicacao}
 
-========================================
-1. CONTEÚDO DO TREINAMENTO
-========================================
-Clareza do conteúdo: ${mapearNota(formData.clareza)}
-Relevância do conteúdo: ${mapearNota(formData.relevancia)}
-Aplicabilidade prática: ${mapearNota(formData.aplicabilidade)}
+--- 1. CONTEÚDO ----------------------
+Clareza: ${formData.clareza}
+Relevância: ${formData.relevancia}
+Aplicabilidade: ${formData.aplicabilidade}
 
-========================================
-2. METODOLOGIA E RECURSOS
-========================================
-Metodologia utilizada: ${mapearNota(formData.metodologia)}
+--- 2. METODOLOGIA -------------------
+Metodologia: ${formData.metodologia}
 
-========================================
-3. COMPREENSÃO DO CICLO PDCA
-========================================
-Compreensão do método PDCA: ${mapearNota(formData.compreensaoPDCA)}
+--- 3. COMPREENSÃO DO PDCA -----------
+PLAN:  ${formData.compreensaoPlan}
+DO:    ${formData.compreensaoDo}
+CHECK: ${formData.compreensaoCheck}
+ACT:   ${formData.compreensaoAct}
 
-========================================
-4. AVALIAÇÃO DO INSTRUTOR
-========================================
-Desempenho do instrutor: ${mapearNota(formData.instrutor)}
+--- 4. INSTRUTOR ---------------------
+Instrutor: ${formData.instrutor}
 
-========================================
-5. RESULTADOS E SATISFAÇÃO GERAL
-========================================
-Atendeu expectativas: ${mapearNota(formData.expectativas)}
-Preparado para aplicar: ${mapearNota(formData.aplicarConhecimento)}
-Recomendaria o treinamento: ${mapearNota(formData.recomendaria)}
+--- 5. RESULTADOS --------------------
+Expectativas:         ${formData.expectativas}
+Aplicar conhecimento: ${formData.aplicarConhecimento}
+Recomendaria:         ${formData.recomendaria}
 
-========================================
-6. COMENTÁRIOS E SUGESTÕES
-========================================
-${formData.comentarios || 'Não informado'}
+--- 6. COMENTÁRIOS -------------------
+${formData.comentarios || 'Nenhum'}
 
-----------------------------------------
-Enviado em: ${new Date().toLocaleString('pt-BR')}`;
+Enviado em: ${new Date().toLocaleString('pt-BR')}
+      `.trim();
 
-    try {
-      // Criar mailto link
-      const subject = `D Bauna - Avaliação Treinamento - ${formData.nomeParticipante} - ${formData.dataAplicacao}`;
-      const mailtoLink = `mailto:carlosballoni@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(emailBody)}`;
-      
-      // Abrir cliente de email
-      window.open(mailtoLink, '_blank');
-      
-      // Mostrar confirmação após pequeno delay
-      setTimeout(() => {
-        setSubmitted(true);
-      }, 500);
-      
-    } catch (error) {
-      console.error('Erro ao enviar:', error);
-      alert('Erro ao abrir o email. Por favor, tente novamente ou entre em contato com o suporte.');
-    }
-  };
+      /* ------------------------------------------------------------------
+         6. Formulário                                                    */
+      return (
+        <div className="py-10 px-4">
+          <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
+            <header className="border-b border-gray-200 pb-6 mb-6">
+              <h1 className="text-3xl font-bold text-gray-800 mb-2">
+                D Bauna – Avaliação de Treinamento
+              </h1>
+              <p className="text-lg text-indigo-600 font-semibold">Gestão e PDCA</p>
+              <p className="text-gray-600 mt-2">
+                Sua opinião é fundamental para aprimorarmos nossos treinamentos.
+              </p>
+            </header>
 
-  if (submitted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full text-center">
-          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">Avaliação Enviada!</h2>
-          <p className="text-gray-600 mb-6">Obrigado pelo seu feedback sobre o treinamento.</p>
-          <button
-            onClick={() => setSubmitted(false)}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
-          >
-            Enviar Outra Avaliação
-          </button>
-        </div>
-      </div>
-    );
-  }
+            <form
+              action="https://formsubmit.co/el/xuyiwe"   /* <<< token gerado no FormSubmit */
+              method="POST"
+              onSubmit={handleNativeSubmit}
+              className="space-y-8"
+            >
+              {/* hidden que junta tudo em texto legível */}
+              <input type="hidden" name="message" value={emailMsg} />
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-xl p-8 mb-6">
-          <div className="border-b border-gray-200 pb-6 mb-6">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              D Bauna - Avaliação de Treinamento
-            </h1>
-            <p className="text-lg text-indigo-600 font-semibold">Gestão e PDCA</p>
-            <p className="text-gray-600 mt-2">
-              Sua opinião é fundamental para aprimorarmos nossos treinamentos
-            </p>
-          </div>
+              {/* parâmetros de controle do FormSubmit */}
+              <input type="hidden" name="_subject"
+                     value={`D Bauna - Avaliação - ${formData.nomeParticipante || 'Novo envio'}`} />
+              <input type="hidden" name="_captcha" value="false" />
+              <input type="hidden" name="_next" value={nextUrl} />
 
-          <div className="space-y-8">
-            {/* Informações Básicas */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                Informações Gerais
-              </h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nome do Participante *
-                  </label>
-                  <input
-                    type="text"
+              {/* -------- 1. Informações gerais ---------------------------- */}
+              <section>
+                <h2 className="titulo-section">Informações Gerais</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <CampoTexto
+                    label="Nome do participante *"
                     name="nomeParticipante"
                     value={formData.nomeParticipante}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Data do Treinamento *
-                  </label>
-                  <input
+                  <CampoTexto
                     type="date"
+                    label="Data do treinamento *"
                     name="dataAplicacao"
                     value={formData.dataAplicacao}
                     onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    required
                   />
                 </div>
-              </div>
-            </section>
+              </section>
 
-            {/* Conteúdo do Treinamento */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                1. Conteúdo do Treinamento
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    A clareza do conteúdo apresentado foi: *
-                  </label>
-                  <select
-                    name="clareza"
-                    value={formData.clareza}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Excelente</option>
-                    <option value="4">Muito Boa</option>
-                    <option value="3">Boa</option>
-                    <option value="2">Regular</option>
-                    <option value="1">Insatisfatória</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    A relevância do conteúdo para sua atuação profissional: *
-                  </label>
-                  <select
-                    name="relevancia"
-                    value={formData.relevancia}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Excelente</option>
-                    <option value="4">Muito Boa</option>
-                    <option value="3">Boa</option>
-                    <option value="2">Regular</option>
-                    <option value="1">Insatisfatória</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    A aplicabilidade prática do conteúdo na sua rotina: *
-                  </label>
-                  <select
-                    name="aplicabilidade"
-                    value={formData.aplicabilidade}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Excelente</option>
-                    <option value="4">Muito Boa</option>
-                    <option value="3">Boa</option>
-                    <option value="2">Regular</option>
-                    <option value="1">Insatisfatória</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              {/* -------- 2. Conteúdo do treinamento ----------------------- */}
+              <section>
+                <h2 className="titulo-section">1. Conteúdo do Treinamento</h2>
+                <CampoSelect
+                  label="Clareza do conteúdo *"
+                  name="clareza"
+                  value={formData.clareza}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Relevância do conteúdo *"
+                  name="relevancia"
+                  value={formData.relevancia}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Aplicabilidade prática *"
+                  name="aplicabilidade"
+                  value={formData.aplicabilidade}
+                  onChange={handleChange}
+                  required
+                />
+              </section>
 
-            {/* Metodologia */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                2. Metodologia e Recursos
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Como você avalia a metodologia utilizada no treinamento? *
-                  </label>
-                  <select
-                    name="metodologia"
-                    value={formData.metodologia}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Excelente</option>
-                    <option value="4">Muito Boa</option>
-                    <option value="3">Boa</option>
-                    <option value="2">Regular</option>
-                    <option value="1">Insatisfatória</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              {/* -------- 3. Metodologia ----------------------------------- */}
+              <section>
+                <h2 className="titulo-section">2. Metodologia e Recursos</h2>
+                <CampoSelect
+                  label="Avaliação da metodologia *"
+                  name="metodologia"
+                  value={formData.metodologia}
+                  onChange={handleChange}
+                  required
+                />
+              </section>
 
-            {/* Compreensão do PDCA */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                3. Compreensão do Ciclo PDCA
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Como você avalia sua compreensão do método PDCA? *
-                  </label>
-                  <select
-                    name="compreensaoPDCA"
-                    value={formData.compreensaoPDCA}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Compreendi completamente</option>
-                    <option value="4">Compreendi bem</option>
-                    <option value="3">Compreendi parcialmente</option>
-                    <option value="2">Tive dificuldades</option>
-                    <option value="1">Não compreendi</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              {/* -------- 4. Compreensão do PDCA --------------------------- */}
+              <section>
+                <h2 className="titulo-section">3. Compreensão do Ciclo PDCA</h2>
+                <CampoSelect
+                  label="Etapa PLAN *"
+                  name="compreensaoPlan"
+                  value={formData.compreensaoPlan}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Etapa DO *"
+                  name="compreensaoDo"
+                  value={formData.compreensaoDo}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Etapa CHECK *"
+                  name="compreensaoCheck"
+                  value={formData.compreensaoCheck}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Etapa ACT *"
+                  name="compreensaoAct"
+                  value={formData.compreensaoAct}
+                  onChange={handleChange}
+                  required
+                />
+              </section>
 
-            {/* Avaliação do Instrutor */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                4. Avaliação do Instrutor
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Como você avalia o desempenho do instrutor? *
-                  </label>
-                  <select
-                    name="instrutor"
-                    value={formData.instrutor}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Excelente</option>
-                    <option value="4">Muito Bom</option>
-                    <option value="3">Bom</option>
-                    <option value="2">Regular</option>
-                    <option value="1">Insatisfatório</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              {/* -------- 5. Instrutor ------------------------------------- */}
+              <section>
+                <h2 className="titulo-section">4. Avaliação do Instrutor</h2>
+                <CampoSelect
+                  label="Desempenho do instrutor *"
+                  name="instrutor"
+                  value={formData.instrutor}
+                  onChange={handleChange}
+                  required
+                />
+              </section>
 
-            {/* Resultados e Satisfação */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                5. Resultados e Satisfação Geral
-              </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    O treinamento atendeu suas expectativas: *
-                  </label>
-                  <select
-                    name="expectativas"
-                    value={formData.expectativas}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Superou expectativas</option>
-                    <option value="4">Atendeu plenamente</option>
-                    <option value="3">Atendeu parcialmente</option>
-                    <option value="2">Atendeu pouco</option>
-                    <option value="1">Não atendeu</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Você se sente preparado para aplicar o conhecimento adquirido: *
-                  </label>
-                  <select
-                    name="aplicarConhecimento"
-                    value={formData.aplicarConhecimento}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Totalmente preparado</option>
-                    <option value="4">Bem preparado</option>
-                    <option value="3">Razoavelmente preparado</option>
-                    <option value="2">Pouco preparado</option>
-                    <option value="1">Não me sinto preparado</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Você recomendaria este treinamento para outros profissionais: *
-                  </label>
-                  <select
-                    name="recomendaria"
-                    value={formData.recomendaria}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  >
-                    <option value="">Selecione...</option>
-                    <option value="5">Certamente sim</option>
-                    <option value="4">Provavelmente sim</option>
-                    <option value="3">Talvez</option>
-                    <option value="2">Provavelmente não</option>
-                    <option value="1">Certamente não</option>
-                  </select>
-                </div>
-              </div>
-            </section>
+              {/* -------- 6. Resultados ------------------------------------ */}
+              <section>
+                <h2 className="titulo-section">5. Resultados e Satisfação Geral</h2>
+                <CampoSelect
+                  label="O treinamento atendeu suas expectativas *"
+                  name="expectativas"
+                  value={formData.expectativas}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Preparado para aplicar o conhecimento *"
+                  name="aplicarConhecimento"
+                  value={formData.aplicarConhecimento}
+                  onChange={handleChange}
+                  required
+                />
+                <CampoSelect
+                  label="Recomendaria o treinamento *"
+                  name="recomendaria"
+                  value={formData.recomendaria}
+                  onChange={handleChange}
+                  required
+                />
+              </section>
 
-            {/* Comentários Abertos */}
-            <section>
-              <h2 className="text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500">
-                6. Comentários e Sugestões
-              </h2>
-              <div className="space-y-4">
-                <div>
+              {/* -------- 7. Comentários ----------------------------------- */}
+              <section>
+                <h2 className="titulo-section">6. Comentários e Sugestões</h2>
+                <div className="space-y-4">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Comentários adicionais
                   </label>
@@ -410,28 +308,112 @@ Enviado em: ${new Date().toLocaleString('pt-BR')}`;
                     value={formData.comentarios}
                     onChange={handleChange}
                     rows="5"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    className="campo-input"
                     placeholder="Compartilhe suas sugestões, pontos fortes do treinamento ou qualquer outro comentário..."
                   />
                 </div>
+              </section>
+
+              {/* -------- Botão -------------------------------------------- */}
+              <div className="pt-6 border-t border-gray-200">
+                <button
+                  type="submit"
+                  className={`w-full ${loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'} text-white py-3 px-6 rounded-lg font-semibold transition-colors shadow-lg`}
+                  disabled={loading}
+                >
+                  {loading ? 'Enviando…' : 'Enviar Avaliação'}
+                </button>
               </div>
-            </section>
-
-            <div className="pt-6 border-t border-gray-200">
-              <button
-                onClick={handleSubmit}
-                className="w-full bg-indigo-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-indigo-700 transition-colors shadow-lg hover:shadow-xl"
-              >
-                Enviar Avaliação
-              </button>
-            </div>
+            </form>
           </div>
-        </div>
 
-        <p className="text-center text-gray-600 text-sm">
-          Suas respostas são confidenciais e serão usadas apenas para melhoria contínua
-        </p>
+          <p className="text-center text-gray-600 text-sm mt-6">
+            Suas respostas são confidenciais e usadas apenas para melhoria contínua.
+          </p>
+        </div>
+      );
+    }
+
+    /* --------------------------------------------------------------------
+       7. Componentes reutilizáveis                                        */
+    const opcoes = [
+      'Excelente (5)',
+      'Muito Bom (4)',
+      'Bom (3)',
+      'Regular (2)',
+      'Insatisfatório (1)'
+    ];
+
+    const CampoTexto = ({
+      label,
+      name,
+      value,
+      onChange,
+      type = 'text',
+      required = false
+    }) => (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+        <input
+          type={type}
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="campo-input"
+        />
       </div>
-    </div>
-  );
-}
+    );
+
+    const CampoSelect = ({
+      label,
+      name,
+      value,
+      onChange,
+      required = false
+    }) => (
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          {label}
+        </label>
+        <select
+          name={name}
+          value={value}
+          onChange={onChange}
+          required={required}
+          className="campo-input"
+        >
+          <option value="">Selecione…</option>
+          {opcoes.map(opt => (
+            <option key={opt} value={opt}>{opt}</option>
+          ))}
+        </select>
+      </div>
+    );
+
+    /* --------------------------------------------------------------------
+       8. Estilos utilitários extras                                       */
+    tailwind.config = {
+      theme: {
+        extend: {
+          typography: false
+        }
+      }
+    };
+
+    /* classes Tailwind centralizadas para inputs/sections */
+    const style = document.createElement('style');
+    style.innerHTML = `
+      .campo-input { @apply w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent; }
+      .titulo-section { @apply text-xl font-bold text-gray-800 mb-4 pb-2 border-b-2 border-indigo-500; }
+    `;
+    document.head.appendChild(style);
+
+    /* --------------------------------------------------------------------
+       9. Renderização do App                                              */
+    ReactDOM.createRoot(document.getElementById('root')).render(<FormularioTreinamento />);
+  </script>
+</body>
+</html>
